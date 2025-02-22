@@ -1,40 +1,40 @@
-local player = game.Players.LocalPlayer
+-- 로컬 스크립트 (StarterPlayerScripts 내)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local damageEvent = ReplicatedStorage:WaitForChild("DamageEvent")  -- 이미 존재하는 DamageEvent 리모트 이벤트 참조
+local DamageEvent = ReplicatedStorage:WaitForChild("DamageEvent")
+local LocalPlayer = game.Players.LocalPlayer
 
-local radius = 20  -- 데미지를 입히는 범위 (20 studs)
-local damageCooldown = false  -- 쿨타임 변수
-local damageInterval = 0.5  -- 쿨타임 간격 (초 단위)
-
--- 데미지 이벤트를 서버로 전송
-local function sendDamageEvent(targetPlayer)
-    if targetPlayer and targetPlayer.Character then
-        damageEvent:FireServer(targetPlayer)  -- 서버로 데미지 이벤트 전송
-    end
+-- 발사 후 주변 플레이어에게 데미지를 입히는 예시
+local function triggerDamage(target, damageAmount)
+    -- 서버로 DamageEvent 호출, 타겟과 데미지 값 전달
+    DamageEvent:FireServer(target, damageAmount)
 end
 
--- 플레이어 근처에 있는 다른 플레이어 탐지
-local function detectNearbyPlayers()
-    while true do
-        local position = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position
-        if position then
-            for _, targetPlayer in pairs(game.Players:GetPlayers()) do
-                if targetPlayer ~= player and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                    local targetPos = targetPlayer.Character.HumanoidRootPart.Position
-                    local distance = (position - targetPos).Magnitude
-                    if distance <= radius and not damageCooldown then
-                        -- 데미지 전송
-                        sendDamageEvent(targetPlayer)
-                        damageCooldown = true
-                        wait(damageInterval)  -- 쿨타임 대기
-                        damageCooldown = false
-                    end
+-- 예시로 플레이어 주변에 있는 적을 찾아서 데미지 입히기
+local function checkForEnemies()
+    local range = 50  -- 범위 설정 (50 studs 내)
+    local character = LocalPlayer.Character
+    local position = character and character:WaitForChild("HumanoidRootPart").Position
+
+    if not position then return end
+    
+    -- 주변에 있는 모든 플레이어 확인
+    for _, otherPlayer in pairs(game.Players:GetPlayers()) do
+        if otherPlayer ~= LocalPlayer and otherPlayer.Character then
+            local otherCharacter = otherPlayer.Character
+            local otherHumanoidRootPart = otherCharacter:FindFirstChild("HumanoidRootPart")
+            if otherHumanoidRootPart then
+                local distance = (position - otherHumanoidRootPart.Position).Magnitude
+                if distance <= range then
+                    -- 범위 내에 있으면 데미지 입히기
+                    triggerDamage(otherHumanoidRootPart, 10)  -- 10의 데미지
                 end
             end
         end
-        wait(0.1)
     end
 end
 
--- 근처 플레이어 탐지 시작
-detectNearbyPlayers()
+-- 예시로 1초마다 주변 적을 체크
+while true do
+    wait(1)
+    checkForEnemies()
+end
